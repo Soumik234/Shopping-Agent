@@ -37,7 +37,13 @@ def _create_agent():
 
     print("8. creating agent")
     agent_obj = create_agent(
-        tools=[search_products, get_rating, checkout, describe_product_image],
+        tools=[
+                search_products,
+                get_rating,
+                checkout,
+                get_order_history,
+                describe_product_image
+            ],
         model=llm,
         system_prompt=(
             "You are a helpful shopping assistant. Follow these rules strictly.\n\n"
@@ -63,6 +69,13 @@ def _create_agent():
             "   (if only one was listed and the user says 'yes', use that product's ID).\n"
             "2. Call checkout with that product_id (the number from (ID:X)).\n"
             "3. Confirm the order to the user in plain text.\n\n"
+            "ORDER HISTORY — when the user asks about previous purchases:\n"
+            "1. If the user asks 'What have I ordered before?', 'Show my orders', "
+            "'Show my order history', 'Previous purchases', or similar, call "
+            "get_order_history.\n"
+            "2. Display the returned orders in a numbered list.\n"
+            "3. Include product name, order ID, price, and ordered date.\n"
+            "4. Do not call checkout when showing order history.\n\n"
             "Never place an order unless the user explicitly confirms. "
             "Never guess a product_id — always take it from the (ID:X) in your own previous message."
         ),
@@ -184,6 +197,39 @@ def checkout(product_id: int) -> str:
         f"Your order will arrive in 3-5 business days. Thank you for shopping with us!"
     )
 
+@tool
+def get_order_history(limit: int = 10) -> str:
+    """
+    Retrieve recent orders.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            id,
+            product_id,
+            product_name,
+            price,
+            ordered_at
+        FROM orders
+        ORDER BY ordered_at DESC
+        LIMIT ?
+    """, (limit,))
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return json.dumps([
+        {
+            "order_id": row[0],  
+            "product_id": row[1],
+            "product_name": row[2],
+            "price": row[3],
+            "ordered_at": row[4]
+        }
+        for row in rows
+    ])
 
 @tool
 def describe_product_image(image_path: str) -> str:
