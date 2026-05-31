@@ -24,5 +24,8 @@ dependencies = [
     "langchain-community>=0.4.0",
     "langchain-text-splitters>=1.0.0",
     "pillow>=11.0.0",
-    "torchvision>=0.22.0"
+    "torchvision>=0.22.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.35.0",
+    "python-multipart>=0.0.20"
 ]
