@@ -29,6 +29,14 @@ def create_database():
             FOREIGN KEY (product_id) REFERENCES products(id)
         )
     """)
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_preferences (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            preference_key TEXT UNIQUE NOT NULL,
+            preference_value TEXT NOT NULL
+        )
+    """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS orders (

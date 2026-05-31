@@ -38,12 +38,14 @@ def _create_agent():
     print("8. creating agent")
     agent_obj = create_agent(
         tools=[
-                search_products,
-                get_rating,
-                checkout,
-                get_order_history,
-                describe_product_image
-            ],
+            search_products,
+            get_rating,
+            checkout,
+            get_order_history,
+            save_preference,
+            get_preferences,
+            describe_product_image
+        ],
         model=llm,
         system_prompt=(
             "You are a helpful shopping assistant. Follow these rules strictly.\n\n"
@@ -78,6 +80,12 @@ def _create_agent():
             "4. Do not call checkout when showing order history.\n\n"
             "Never place an order unless the user explicitly confirms. "
             "Never guess a product_id — always take it from the (ID:X) in your own previous message."
+            "\n\n"
+            "USER PREFERENCES — when handling user requests:\n"
+            "1. Before searching for products, call get_preferences.\n"
+            "2. If the user has saved preferences and does not specify constraints, use those preferences.\n"
+            "3. If the user's message contains the words 'remember', 'always', 'from now on', or 'I prefer', call save_preference to save the preference.\n"
+            "4. Explicit instructions in the current message override stored preferences.\n"
         ),
     )
     print("9. agent created")
@@ -230,6 +238,50 @@ def get_order_history(limit: int = 10) -> str:
         }
         for row in rows
     ])
+    
+@tool
+def save_preference(key: str, value: str) -> str:
+    """
+    Save a user preference for future shopping sessions.
+    """
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT OR REPLACE INTO user_preferences
+        (preference_key, preference_value)
+        VALUES (?, ?)
+    """, (key, value))
+
+    conn.commit()
+    conn.close()
+
+    return f"Saved preference: {key}={value}"
+
+@tool
+def get_preferences() -> str:
+    """
+    Retrieve all saved user preferences.
+    """
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT preference_key, preference_value
+        FROM user_preferences
+    """)
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    prefs = {
+        key: value
+        for key, value in rows
+    }
+
+    return json.dumps(prefs)
 
 @tool
 def describe_product_image(image_path: str) -> str:
