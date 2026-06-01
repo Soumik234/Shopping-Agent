@@ -7,7 +7,7 @@ import uuid
 from typing import Any, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from shopping_agent import (
     agent,
@@ -41,7 +41,7 @@ class ProductResponse(BaseModel):
 class ChatResponse(BaseModel):
     role: str
     content: str
-    products: list[ProductResponse] = []
+    products: list[ProductResponse] = Field(default_factory=list)
 
 
 class HealthResponse(BaseModel):

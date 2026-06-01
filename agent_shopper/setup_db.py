@@ -55,12 +55,12 @@ def create_database():
         # --- Honey (8) ---
         (1,  "Organic Raw Honey",             "honey",     14.99, "Pure organic raw honey, unfiltered and cold-pressed",                1, "https://images.unsplash.com/photo-1587049352851-8d4e89133924?w=400"),
         (2,  "Wildflower Honey",              "honey",     12.99, "Natural wildflower honey from local beekeepers",                     0, "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=400"),
-        (3,  "Organic Manuka Honey",          "honey",     29.99, "Premium organic Manuka honey from New Zealand",                      1, "https://images.unsplash.com/photo-1471943038396-4dba9b56e4e7?w=400"),
+        (3,  "Organic Manuka Honey",          "honey",     29.99, "Premium organic Manuka honey from New Zealand",                      1, "https://picsum.photos/seed/manuka-honey/400"),
         (4,  "Clover Honey",                  "honey",      8.99, "Classic clover honey, smooth and sweet",                             0, "https://images.unsplash.com/photo-1582126892906-5ba118eaf46e?w=400"),
-        (5,  "Organic Buckwheat Honey",       "honey",     18.99, "Dark and robust organic buckwheat honey, antioxidant-rich",          1, "https://images.unsplash.com/photo-1559181567-c3190ca9be46?w=400"),
-        (6,  "Orange Blossom Honey",          "honey",     15.99, "Light and floral orange blossom honey",                              0, "https://images.unsplash.com/photo-1550411294-8be569f8f4ea?w=400"),
+        (5,  "Organic Buckwheat Honey",       "honey",     18.99, "Dark and robust organic buckwheat honey, antioxidant-rich",          1, "https://picsum.photos/seed/buckwheat-honey/400"),
+        (6,  "Orange Blossom Honey",          "honey",     15.99, "Light and floral orange blossom honey",                              0, "https://picsum.photos/seed/orange-blossom-honey/400"),
         (7,  "Organic Acacia Honey",          "honey",     17.99, "Light and mild organic acacia honey, low glycemic index",            1, "https://images.unsplash.com/photo-1601063458289-77247ba485ec?w=400"),
-        (8,  "Creamed Honey",                 "honey",     11.99, "Smooth creamed honey with spreadable texture",                       0, "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400"),
+        (8,  "Creamed Honey",                 "honey",     11.99, "Smooth creamed honey with spreadable texture",                       0, "https://picsum.photos/seed/creamed-honey/400"),
         # --- Oils (4) ---
         (9,  "Organic Extra Virgin Olive Oil","oil",       16.99, "Cold-pressed organic EVOO from Mediterranean olives",               1, "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400"),
         (10, "Coconut Oil",                   "oil",       12.49, "Refined coconut oil, great for high-heat cooking",                   0, "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=400"),
@@ -69,7 +69,7 @@ def create_database():
         # --- Nuts & Seeds (4) ---
         (13, "Organic Almonds",               "nuts",      11.99, "Raw organic almonds, unsalted, non-GMO certified",                   1, "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400"),
         (14, "Roasted Cashews",               "nuts",       9.99, "Lightly salted dry-roasted cashews",                                 0, "https://images.unsplash.com/photo-1599599810694-b5b37304c041?w=400"),
-        (15, "Organic Chia Seeds",            "seeds",      8.49, "Organic black chia seeds, high in fiber and omega-3",                1, "https://images.unsplash.com/photo-1514733670139-4d66f6b0fbb7?w=400"),
+        (15, "Organic Chia Seeds",            "seeds",      8.49, "Organic black chia seeds, high in fiber and omega-3",                1, "https://picsum.photos/seed/chia-seeds/400"),
         (16, "Mixed Nuts",                    "nuts",      13.99, "Premium mix of walnuts, pecans, almonds and Brazil nuts",            0, "https://images.unsplash.com/photo-1543362906-acfc16c67564?w=400"),
         # --- Grains & Cereals (4) ---
         (17, "Organic Quinoa",                "grains",    10.99, "Organic white quinoa, complete protein, gluten-free",                1, "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400"),
@@ -82,14 +82,14 @@ def create_database():
         (23, "Organic Ethiopian Coffee",      "coffee",    16.99, "Single-origin organic Arabica, medium roast whole bean",             1, "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400"),
         (24, "Dark Roast Espresso Blend",     "coffee",    14.49, "Bold dark roast espresso blend, ground",                             0, "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400"),
         # --- Snacks (4) ---
-        (25, "Organic Granola",               "snacks",     9.99, "Organic oat granola with honey, almonds and dried cranberries",      1, "https://images.unsplash.com/photo-1517093602195-b40af9929f90?w=400"),
+        (25, "Organic Granola",               "snacks",     9.99, "Organic oat granola with honey, almonds and dried cranberries",      1, "https://picsum.photos/seed/granola/400"),
         (26, "Rice Cakes",                    "snacks",     4.49, "Lightly salted brown rice cakes, low calorie",                       0, "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400"),
         (27, "Organic Dried Mango",           "snacks",     7.99, "Unsweetened organic dried mango slices, no preservatives",           1, "https://images.unsplash.com/photo-1553279768-865429fa0078?w=400"),
-        (28, "Trail Mix",                     "snacks",     8.49, "Classic trail mix with raisins, M&Ms, peanuts and sunflower seeds",  0, "https://images.unsplash.com/photo-1599599810694-b5b37304c041?w=400"),
+        (28, "Trail Mix",                     "snacks",     8.49, "Classic trail mix with raisins, M&Ms, peanuts and sunflower seeds",  0, "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=400"),
         # --- Dairy Alternatives (4) ---
         (29, "Organic Almond Milk",           "dairy-alt",  4.99, "Unsweetened organic almond milk, fortified with calcium",            1, "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400"),
-        (30, "Oat Milk",                      "dairy-alt",  4.49, "Barista-style oat milk, great for coffee",                           0, "https://images.unsplash.com/photo-1614963326505-5e7cece62a29?w=400"),
-        (31, "Organic Coconut Milk",          "dairy-alt",  3.99, "Full-fat organic coconut milk, great for curries",                   1, "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400"),
+        (30, "Oat Milk",                      "dairy-alt",  4.49, "Barista-style oat milk, great for coffee",                           0, "https://picsum.photos/seed/oat-milk/400"),
+        (31, "Organic Coconut Milk",          "dairy-alt",  3.99, "Full-fat organic coconut milk, great for curries",                   1, "https://picsum.photos/seed/coconut-milk/400"),
         (32, "Soy Milk",                      "dairy-alt",  3.49, "Unsweetened soy milk, high protein",                                 0, "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400"),
     ]
     cursor.executemany("INSERT OR REPLACE INTO products VALUES (?, ?, ?, ?, ?, ?, ?)", products)
