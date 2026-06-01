@@ -2,7 +2,7 @@ import json
 import os
 import tempfile
 import uuid
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -46,6 +46,7 @@ class OrderResponse(BaseModel):
     product_name: str
     price: float
     ordered_at: str
+    image_url: Optional[str] = None
 
 
 def _extract_message(message: Any) -> dict[str, str]:

@@ -15,7 +15,8 @@ def create_database():
             category TEXT,
             price REAL,
             description TEXT,
-            is_organic INTEGER DEFAULT 0
+            is_organic INTEGER DEFAULT 0,
+            image_url TEXT
         )
     """)
 
@@ -29,7 +30,7 @@ def create_database():
             FOREIGN KEY (product_id) REFERENCES products(id)
         )
     """)
-    
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_preferences (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,56 +51,49 @@ def create_database():
     """)
 
     products = [
+        # id, name, category, price, description, is_organic, image_url
         # --- Honey (8) ---
-        (1,  "Organic Raw Honey",            "honey",        14.99, "Pure organic raw honey, unfiltered and cold-pressed",                1),
-        (2,  "Wildflower Honey",             "honey",        12.99, "Natural wildflower honey from local beekeepers",                     0),
-        (3,  "Organic Manuka Honey",         "honey",        29.99, "Premium organic Manuka honey from New Zealand",                      1),
-        (4,  "Clover Honey",                 "honey",         8.99, "Classic clover honey, smooth and sweet",                             0),
-        (5,  "Organic Buckwheat Honey",      "honey",        18.99, "Dark and robust organic buckwheat honey, antioxidant-rich",          1),
-        (6,  "Orange Blossom Honey",         "honey",        15.99, "Light and floral orange blossom honey",                              0),
-        (7,  "Organic Acacia Honey",         "honey",        17.99, "Light and mild organic acacia honey, low glycemic index",            1),
-        (8,  "Creamed Honey",                "honey",        11.99, "Smooth creamed honey with spreadable texture",                       0),
+        (1,  "Organic Raw Honey",             "honey",     14.99, "Pure organic raw honey, unfiltered and cold-pressed",                1, "https://images.unsplash.com/photo-1587049352851-8d4e89133924?w=400"),
+        (2,  "Wildflower Honey",              "honey",     12.99, "Natural wildflower honey from local beekeepers",                     0, "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=400"),
+        (3,  "Organic Manuka Honey",          "honey",     29.99, "Premium organic Manuka honey from New Zealand",                      1, "https://images.unsplash.com/photo-1471943038396-4dba9b56e4e7?w=400"),
+        (4,  "Clover Honey",                  "honey",      8.99, "Classic clover honey, smooth and sweet",                             0, "https://images.unsplash.com/photo-1582126892906-5ba118eaf46e?w=400"),
+        (5,  "Organic Buckwheat Honey",       "honey",     18.99, "Dark and robust organic buckwheat honey, antioxidant-rich",          1, "https://images.unsplash.com/photo-1559181567-c3190ca9be46?w=400"),
+        (6,  "Orange Blossom Honey",          "honey",     15.99, "Light and floral orange blossom honey",                              0, "https://images.unsplash.com/photo-1550411294-8be569f8f4ea?w=400"),
+        (7,  "Organic Acacia Honey",          "honey",     17.99, "Light and mild organic acacia honey, low glycemic index",            1, "https://images.unsplash.com/photo-1601063458289-77247ba485ec?w=400"),
+        (8,  "Creamed Honey",                 "honey",     11.99, "Smooth creamed honey with spreadable texture",                       0, "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400"),
         # --- Oils (4) ---
-        (9,  "Organic Extra Virgin Olive Oil","oil",         16.99, "Cold-pressed organic EVOO from Mediterranean olives",               1),
-        (10, "Coconut Oil",                  "oil",          12.49, "Refined coconut oil, great for high-heat cooking",                   0),
-        (11, "Organic Flaxseed Oil",         "oil",          14.99, "Cold-pressed organic flaxseed oil, rich in omega-3",                 1),
-        (12, "Avocado Oil",                  "oil",          18.99, "Cold-pressed avocado oil, high smoke point",                         0),
+        (9,  "Organic Extra Virgin Olive Oil","oil",       16.99, "Cold-pressed organic EVOO from Mediterranean olives",               1, "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400"),
+        (10, "Coconut Oil",                   "oil",       12.49, "Refined coconut oil, great for high-heat cooking",                   0, "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=400"),
+        (11, "Organic Flaxseed Oil",          "oil",       14.99, "Cold-pressed organic flaxseed oil, rich in omega-3",                 1, "https://images.unsplash.com/photo-1620706857370-e1b9770e8bb1?w=400"),
+        (12, "Avocado Oil",                   "oil",       18.99, "Cold-pressed avocado oil, high smoke point",                         0, "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=400"),
         # --- Nuts & Seeds (4) ---
-        (13, "Organic Almonds",              "nuts",         11.99, "Raw organic almonds, unsalted, non-GMO certified",                   1),
-        (14, "Roasted Cashews",              "nuts",          9.99, "Lightly salted dry-roasted cashews",                                 0),
-        (15, "Organic Chia Seeds",           "seeds",         8.49, "Organic black chia seeds, high in fiber and omega-3",                1),
-        (16, "Mixed Nuts",                   "nuts",         13.99, "Premium mix of walnuts, pecans, almonds and Brazil nuts",            0),
+        (13, "Organic Almonds",               "nuts",      11.99, "Raw organic almonds, unsalted, non-GMO certified",                   1, "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400"),
+        (14, "Roasted Cashews",               "nuts",       9.99, "Lightly salted dry-roasted cashews",                                 0, "https://images.unsplash.com/photo-1599599810694-b5b37304c041?w=400"),
+        (15, "Organic Chia Seeds",            "seeds",      8.49, "Organic black chia seeds, high in fiber and omega-3",                1, "https://images.unsplash.com/photo-1514733670139-4d66f6b0fbb7?w=400"),
+        (16, "Mixed Nuts",                    "nuts",      13.99, "Premium mix of walnuts, pecans, almonds and Brazil nuts",            0, "https://images.unsplash.com/photo-1543362906-acfc16c67564?w=400"),
         # --- Grains & Cereals (4) ---
-        (17, "Organic Quinoa",               "grains",       10.99, "Organic white quinoa, complete protein, gluten-free",                1),
-        (18, "Rolled Oats",                  "grains",        5.49, "Whole grain rolled oats, great for porridge and baking",             0),
-        (19, "Organic Brown Rice",           "grains",        7.99, "Long-grain organic brown rice, naturally gluten-free",               1),
-        (20, "Steel-Cut Oats",               "grains",        6.99, "Traditional steel-cut oats, low GI, hearty texture",                 0),
+        (17, "Organic Quinoa",                "grains",    10.99, "Organic white quinoa, complete protein, gluten-free",                1, "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400"),
+        (18, "Rolled Oats",                   "grains",     5.49, "Whole grain rolled oats, great for porridge and baking",             0, "https://images.unsplash.com/photo-1614961233913-a5113a4a34ed?w=400"),
+        (19, "Organic Brown Rice",            "grains",     7.99, "Long-grain organic brown rice, naturally gluten-free",               1, "https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=400"),
+        (20, "Steel-Cut Oats",                "grains",     6.99, "Traditional steel-cut oats, low GI, hearty texture",                 0, "https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=400"),
         # --- Tea & Coffee (4) ---
-        (21, "Organic Green Tea",            "tea",          12.99, "Japanese organic sencha green tea, 50 bags",                         1),
-        (22, "Chamomile Tea",                "tea",           8.99, "Dried chamomile flowers, caffeine-free, soothing",                   0),
-        (23, "Organic Ethiopian Coffee",     "coffee",       16.99, "Single-origin organic Arabica, medium roast whole bean",             1),
-        (24, "Dark Roast Espresso Blend",    "coffee",       14.49, "Bold dark roast espresso blend, ground",                             0),
+        (21, "Organic Green Tea",             "tea",       12.99, "Japanese organic sencha green tea, 50 bags",                         1, "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400"),
+        (22, "Chamomile Tea",                 "tea",        8.99, "Dried chamomile flowers, caffeine-free, soothing",                   0, "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=400"),
+        (23, "Organic Ethiopian Coffee",      "coffee",    16.99, "Single-origin organic Arabica, medium roast whole bean",             1, "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400"),
+        (24, "Dark Roast Espresso Blend",     "coffee",    14.49, "Bold dark roast espresso blend, ground",                             0, "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400"),
         # --- Snacks (4) ---
-        (25, "Organic Granola",              "snacks",        9.99, "Organic oat granola with honey, almonds and dried cranberries",      1),
-        (26, "Rice Cakes",                   "snacks",        4.49, "Lightly salted brown rice cakes, low calorie",                       0),
-        (27, "Organic Dried Mango",          "snacks",        7.99, "Unsweetened organic dried mango slices, no preservatives",           1),
-        (28, "Trail Mix",                    "snacks",        8.49, "Classic trail mix with raisins, M&Ms, peanuts and sunflower seeds",  0),
+        (25, "Organic Granola",               "snacks",     9.99, "Organic oat granola with honey, almonds and dried cranberries",      1, "https://images.unsplash.com/photo-1517093602195-b40af9929f90?w=400"),
+        (26, "Rice Cakes",                    "snacks",     4.49, "Lightly salted brown rice cakes, low calorie",                       0, "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400"),
+        (27, "Organic Dried Mango",           "snacks",     7.99, "Unsweetened organic dried mango slices, no preservatives",           1, "https://images.unsplash.com/photo-1553279768-865429fa0078?w=400"),
+        (28, "Trail Mix",                     "snacks",     8.49, "Classic trail mix with raisins, M&Ms, peanuts and sunflower seeds",  0, "https://images.unsplash.com/photo-1599599810694-b5b37304c041?w=400"),
         # --- Dairy Alternatives (4) ---
-        (29, "Organic Almond Milk",          "dairy-alt",     4.99, "Unsweetened organic almond milk, fortified with calcium",            1),
-        (30, "Oat Milk",                     "dairy-alt",     4.49, "Barista-style oat milk, great for coffee",                           0),
-        (31, "Organic Coconut Milk",         "dairy-alt",     3.99, "Full-fat organic coconut milk, great for curries",                   1),
-        (32, "Soy Milk",                     "dairy-alt",     3.49, "Unsweetened soy milk, high protein",                                 0),
+        (29, "Organic Almond Milk",           "dairy-alt",  4.99, "Unsweetened organic almond milk, fortified with calcium",            1, "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400"),
+        (30, "Oat Milk",                      "dairy-alt",  4.49, "Barista-style oat milk, great for coffee",                           0, "https://images.unsplash.com/photo-1614963326505-5e7cece62a29?w=400"),
+        (31, "Organic Coconut Milk",          "dairy-alt",  3.99, "Full-fat organic coconut milk, great for curries",                   1, "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400"),
+        (32, "Soy Milk",                      "dairy-alt",  3.49, "Unsweetened soy milk, high protein",                                 0, "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400"),
     ]
-    cursor.executemany("INSERT OR REPLACE INTO products VALUES (?, ?, ?, ?, ?, ?)", products)
+    cursor.executemany("INSERT OR REPLACE INTO products VALUES (?, ?, ?, ?, ?, ?, ?)", products)
 
-    # Avg ratings (for reference):
-    # Honey:      1→4.625✓  2→3.833  3→4.833($$)  4→3.5  5→4.625✓  6→4.167  7→4.75✓  8→4.0
-    # Oils:       9→4.67   10→3.67  11→4.5        12→4.33
-    # Nuts/Seeds: 13→4.75  14→4.0   15→4.5        16→3.75
-    # Grains:     17→4.67  18→4.33  19→4.5        20→3.83
-    # Tea/Coffee: 21→4.67  22→4.17  23→4.75       24→4.0
-    # Snacks:     25→4.5   26→3.83  27→4.67       28→3.67
-    # Dairy-alt:  29→4.5   30→4.33  31→4.5        32→3.67
     reviews = [
         # Honey
         (1, 5.0, "Alice",   "Amazing honey! Best I've ever tried."),

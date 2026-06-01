@@ -132,12 +132,12 @@ def search_products(query: str, max_price: Optional[float] = None, is_organic: O
     Search the product database by keyword (matched against name, description, and category).
     Optionally filter by maximum price and/or organic status.
     Returns a JSON array of matching products, each with: id, name, category, price,
-    description, is_organic.
+    description, is_organic, image_url.
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    sql = "SELECT id, name, category, price, description, is_organic FROM products WHERE 1=1"
+    sql = "SELECT id, name, category, price, description, is_organic, image_url FROM products WHERE 1=1"
     params: list = []
 
     if query:
@@ -165,6 +165,7 @@ def search_products(query: str, max_price: Optional[float] = None, is_organic: O
             "price":       row[3],
             "description": row[4],
             "is_organic":  bool(row[5]),
+            "image_url":   row[6],
         }
         for row in rows
     ]
@@ -220,13 +221,15 @@ def get_order_history(limit: int = 10) -> str:
 
     cursor.execute("""
         SELECT
-            id,
-            product_id,
-            product_name,
-            price,
-            ordered_at
-        FROM orders
-        ORDER BY ordered_at DESC
+            o.id,
+            o.product_id,
+            o.product_name,
+            o.price,
+            o.ordered_at,
+            p.image_url
+        FROM orders o
+        LEFT JOIN products p ON o.product_id = p.id
+        ORDER BY o.ordered_at DESC
         LIMIT ?
     """, (limit,))
 
@@ -235,11 +238,12 @@ def get_order_history(limit: int = 10) -> str:
 
     return json.dumps([
         {
-            "order_id": row[0],  
+            "order_id": row[0],
             "product_id": row[1],
             "product_name": row[2],
             "price": row[3],
-            "ordered_at": row[4]
+            "ordered_at": row[4],
+            "image_url": row[5],
         }
         for row in rows
     ])
