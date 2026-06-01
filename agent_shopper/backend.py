@@ -1,5 +1,7 @@
 import json
 import os
+import re
+import sqlite3
 import tempfile
 import uuid
 from typing import Any, Optional
@@ -26,9 +28,20 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
 
 
+class ProductResponse(BaseModel):
+    id: int
+    index: int
+    name: str
+    price: float
+    rating: Optional[float] = None
+    is_organic: bool
+    image_url: Optional[str] = None
+
+
 class ChatResponse(BaseModel):
     role: str
     content: str
+    products: list[ProductResponse] = []
 
 
 class HealthResponse(BaseModel):
@@ -63,6 +76,72 @@ def _extract_message(message: Any) -> dict[str, str]:
     raise ValueError("Unexpected message type")
 
 
+def _extract_product_ids_from_message(content: str) -> list[tuple[int, int]]:
+    """
+    Extract product ID and index from assistant message.
+    Format: #<number>. <name> (ID:<product_id>) — ...
+    Returns: list of (index, product_id) tuples in order.
+    """
+    pattern = r'#(\d+)\..+?\(ID:(\d+)\)'
+    matches = re.findall(pattern, content)
+    return [(int(idx), int(pid)) for idx, pid in matches]
+
+
+def _fetch_product_data(product_ids_with_indices: list[tuple[int, int]]) -> list[ProductResponse]:
+    """
+    Fetch product data with ratings from database.
+    Preserves order from the indices in the assistant message.
+    """
+    if not product_ids_with_indices:
+        return []
+
+    db_path = os.path.join(os.path.dirname(__file__), "store.db")
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    product_ids = [pid for _, pid in product_ids_with_indices]
+    placeholders = ",".join("?" * len(product_ids))
+
+    cursor.execute(f"""
+        SELECT
+            p.id,
+            p.name,
+            p.price,
+            p.is_organic,
+            p.image_url,
+            COALESCE(AVG(r.rating), 0) AS rating
+        FROM products p
+        LEFT JOIN reviews r ON r.product_id = p.id
+        WHERE p.id IN ({placeholders})
+        GROUP BY p.id
+    """, product_ids)
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Create a map of product_id -> product data
+    product_map = {row[0]: row for row in rows}
+
+    # Build response in original order, indexed by the assistant message numbering
+    products = []
+    for idx, pid in product_ids_with_indices:
+        if pid in product_map:
+            row = product_map[pid]
+            products.append(
+                ProductResponse(
+                    id=row[0],
+                    index=idx,
+                    name=row[1],
+                    price=row[2],
+                    is_organic=bool(row[3]),
+                    image_url=row[4],
+                    rating=float(row[5]) if row[5] else None,
+                )
+            )
+
+    return products
+
+
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     return HealthResponse(status="ok")
@@ -83,7 +162,18 @@ async def chat(request: ChatRequest) -> ChatResponse:
         raise HTTPException(status_code=500, detail="No response from agent")
 
     assistant_message = _extract_message(messages[-1])
-    return ChatResponse(**assistant_message)
+    content = assistant_message.get("content", "")
+
+    # Extract product recommendations from content
+    product_ids_with_indices = _extract_product_ids_from_message(content)
+    products = _fetch_product_data(product_ids_with_indices)
+    _log(request_id, f"Extracted {len(products)} products from assistant message")
+
+    return ChatResponse(
+        role=assistant_message["role"],
+        content=content,
+        products=products,
+    )
 
 
 @app.post("/upload-image", response_model=ChatResponse)
@@ -109,7 +199,18 @@ async def upload_image(file: UploadFile = File(...)) -> ChatResponse:
             raise HTTPException(status_code=500, detail="No response from agent")
 
         assistant_message = _extract_message(messages[-1])
-        return ChatResponse(**assistant_message)
+        content = assistant_message.get("content", "")
+
+        # Extract product recommendations from content
+        product_ids_with_indices = _extract_product_ids_from_message(content)
+        products = _fetch_product_data(product_ids_with_indices)
+        _log(request_id, f"Extracted {len(products)} products from image analysis")
+
+        return ChatResponse(
+            role=assistant_message["role"],
+            content=content,
+            products=products,
+        )
     finally:
         try:
             os.remove(image_path)
