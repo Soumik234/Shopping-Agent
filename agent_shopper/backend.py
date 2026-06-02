@@ -248,6 +248,12 @@ def _invoke_agent(request_id: str, messages: list[dict[str, str]]) -> dict:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _call_tool(tool_obj, *args, **kwargs):
+    if hasattr(tool_obj, "func"):
+        return tool_obj.func(*args, **kwargs)
+    return tool_obj(*args, **kwargs)
+
+
 def _fetch_all_product_data() -> list[ProductDetailResponse]:
     db_path = os.path.join(os.path.dirname(__file__), "store.db")
     conn = sqlite3.connect(db_path)
@@ -333,7 +339,7 @@ async def get_preferences_endpoint() -> dict[str, str]:
     _log(request_id, "GET /preferences request received")
 
     try:
-        result = get_preferences()
+        result = _call_tool(get_preferences)
         return json.loads(result)
     except Exception as e:
         _log(request_id, f"Preferences error: {type(e).__name__}: {e}")
@@ -346,7 +352,7 @@ async def save_preferences_endpoint(request: SavePreferenceRequest) -> dict[str,
     _log(request_id, "POST /preferences request received")
 
     try:
-        result = save_preference(request.key, request.value)
+        result = _call_tool(save_preference, request.key, request.value)
         return {"message": result}
     except Exception as e:
         _log(request_id, f"Save preference error: {type(e).__name__}: {e}")
@@ -359,7 +365,7 @@ async def get_orders_endpoint() -> list[OrderResponse]:
     _log(request_id, "GET /orders request received")
 
     try:
-        result = get_order_history()
+        result = _call_tool(get_order_history)
         return [OrderResponse(**order) for order in json.loads(result)]
     except Exception as e:
         _log(request_id, f"Order history error: {type(e).__name__}: {e}")
