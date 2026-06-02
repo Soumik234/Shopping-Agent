@@ -38,6 +38,24 @@ class ProductResponse(BaseModel):
     image_url: Optional[str] = None
 
 
+class ReviewResponse(BaseModel):
+    rating: float
+    reviewer_name: Optional[str] = None
+    review_text: Optional[str] = None
+
+
+class ProductDetailResponse(BaseModel):
+    id: int
+    name: str
+    category: Optional[str] = None
+    price: float
+    description: Optional[str] = None
+    is_organic: bool
+    image_url: Optional[str] = None
+    rating: Optional[float] = None
+    reviews: list[ReviewResponse] = Field(default_factory=list)
+
+
 class ChatResponse(BaseModel):
     role: str
     content: str
@@ -227,6 +245,85 @@ def _invoke_agent(request_id: str, messages: list[dict[str, str]]) -> dict:
         return agent.invoke({"messages": messages})
     except Exception as e:
         _log(request_id, f"Agent exception: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _fetch_all_product_data() -> list[ProductDetailResponse]:
+    db_path = os.path.join(os.path.dirname(__file__), "store.db")
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT
+            p.id,
+            p.name,
+            p.category,
+            p.price,
+            p.description,
+            p.is_organic,
+            p.image_url,
+            AVG(r.rating) AS rating
+        FROM products p
+        LEFT JOIN reviews r ON r.product_id = p.id
+        GROUP BY p.id
+        ORDER BY p.id
+        """
+    )
+    rows = cursor.fetchall()
+
+    product_ids = [row[0] for row in rows]
+    reviews_map = {pid: [] for pid in product_ids}
+    if product_ids:
+        placeholders = ",".join("?" * len(product_ids))
+        cursor.execute(
+            f"""
+            SELECT product_id, rating, reviewer_name, review_text
+            FROM reviews
+            WHERE product_id IN ({placeholders})
+            ORDER BY product_id
+            """,
+            product_ids,
+        )
+        for product_id, rating, reviewer_name, review_text in cursor.fetchall():
+            reviews_map[product_id].append(
+                ReviewResponse(
+                    rating=rating,
+                    reviewer_name=reviewer_name,
+                    review_text=review_text,
+                )
+            )
+
+    conn.close()
+
+    products = []
+    for row in rows:
+        product_id = row[0]
+        products.append(
+            ProductDetailResponse(
+                id=product_id,
+                name=row[1],
+                category=row[2],
+                price=row[3],
+                description=row[4],
+                is_organic=bool(row[5]),
+                image_url=row[6],
+                rating=float(row[7]) if row[7] is not None else None,
+                reviews=reviews_map.get(product_id, []),
+            )
+        )
+
+    return products
+
+
+@app.get("/products", response_model=list[ProductDetailResponse])
+async def get_products_endpoint() -> list[ProductDetailResponse]:
+    request_id = str(uuid.uuid4())
+    _log(request_id, "GET /products request received")
+
+    try:
+        return _fetch_all_product_data()
+    except Exception as e:
+        _log(request_id, f"Product list error: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
