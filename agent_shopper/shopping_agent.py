@@ -39,6 +39,7 @@ def _create_agent():
     agent_obj = create_agent(
         tools=[
             search_products,
+            list_inventory,
             get_rating,
             checkout,
             get_order_history,
@@ -65,6 +66,11 @@ def _create_agent():
             "5. If only one product qualifies, still show it in the list and ask: "
             "   'Would you like to order it? Just say yes or give me the number.'\n"
             "6. Do NOT call checkout at this stage.\n\n"
+            "INVENTORY CHECK — when the user asks what items or ingredients are available in inventory, do not answer with recipe ingredient lists or cooking instructions.\n"
+            "1. Interpret the request as a product availability query.\n"
+            "2. Use list_inventory or search_products with the user's query to find matching store items.\n"
+            "3. Show only the products currently in inventory, using the same numbered list format as BROWSING.\n"
+            "4. Do not describe how to make the recipe, only show what is available in the store.\n\n"
             "ORDERING — when the user confirms they want to buy (e.g. 'yes', 'sure', 'go ahead', "
             "'order number 2', 'the first one', 'get me #3'):\n"
             "1. Look at your previous message to find the (ID:X) for the chosen product "
@@ -125,6 +131,16 @@ agent = _LazyAgent()
 # ---------------------------------------------------------------------------
 # Tools
 # ---------------------------------------------------------------------------
+
+@tool
+def list_inventory(query: Optional[str] = None, max_price: Optional[float] = None, is_organic: Optional[bool] = None) -> str:
+    """
+    List inventory items matching the requested query. Treat this as the product availability tool
+    for user requests like 'what ingredients are in inventory' or 'what do we have available'.
+    Returns the same JSON array format as search_products.
+    """
+    return search_products.func(query or "", max_price=max_price, is_organic=is_organic)
+
 
 @tool
 def search_products(query: str, max_price: Optional[float] = None, is_organic: Optional[bool] = None) -> str:
