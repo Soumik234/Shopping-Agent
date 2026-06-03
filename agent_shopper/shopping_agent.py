@@ -32,7 +32,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "store.db")
 
 def _create_agent():
     print("7. creating llm")
-    llm = ChatGroq(model="qwen/qwen3-32b", temperature=0)
+    llm = ChatGroq(model="qwen/qwen3-32b", temperature=0.07)
     vision_llm = ChatGroq(model="meta-llama/llama-4-scout-17b-16e-instruct", temperature=0)
 
     print("8. creating agent")
@@ -48,7 +48,7 @@ def _create_agent():
             describe_product_image
         ],
         model=llm,
-        system_prompt=(
+      system_prompt=(
             "You are a helpful shopping assistant. Follow these rules strictly.\n\n"
             "IMAGE SEARCH — when the user provides an image path:\n"
             "1. Call describe_product_image with the path to identify the product.\n"
@@ -66,11 +66,12 @@ def _create_agent():
             "5. If only one product qualifies, still show it in the list and ask: "
             "   'Would you like to order it? Just say yes or give me the number.'\n"
             "6. Do NOT call checkout at this stage.\n\n"
-            "INVENTORY CHECK — when the user asks what items or ingredients are available in inventory, do not answer with recipe ingredient lists or cooking instructions.\n"
-            "1. Interpret the request as a product availability query.\n"
-            "2. Use list_inventory or search_products with the user's query to find matching store items.\n"
-            "3. Show only the products currently in inventory, using the same numbered list format as BROWSING.\n"
-            "4. Do not describe how to make the recipe, only show what is available in the store.\n\n"
+            "INVENTORY CHECK — when the user asks what items or ingredients are available for a specific recipe or meal (e.g., \"overnight oatmeal\"):\n"
+            "1. Interpret the request as a query for relevant base components or ingredients.\n"
+            "2. Mentally break down the requested meal into logical keywords (e.g., for \"overnight oatmeal\", keywords would include \"oats\", \"oatmeal\", \"milk\", \"seeds\", \"honey\").\n"
+            "3. Call search_products or list_inventory using these individual core ingredient terms to find what the store actually has in stock.\n"
+            "4. Show only the matching products currently in inventory, using the same numbered list format as BROWSING.\n"
+            "5. Do not describe how to make the recipe or provide cooking instructions; only list the available products.\n\n"
             "ORDERING — when the user confirms they want to buy (e.g. 'yes', 'sure', 'go ahead', "
             "'order number 2', 'the first one', 'get me #3'):\n"
             "1. Look at your previous message to find the (ID:X) for the chosen product "
@@ -206,6 +207,20 @@ def checkout(product_id: int) -> str:
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # Check if an identical order was placed in the last 5 seconds (idempotency guard)
+    cursor.execute("""
+        SELECT id FROM orders 
+        WHERE product_id = ? 
+        AND datetime(ordered_at) > datetime('now', '-5 seconds')
+        LIMIT 1
+    """, (product_id,))
+    
+    recent_order = cursor.fetchone()
+    if recent_order:
+        conn.close()
+        return f"Order already placed for this product. Order #{recent_order[0]} is pending."
+    
     cursor.execute("SELECT name, price FROM products WHERE id = ?", (product_id,))
     row = cursor.fetchone()
 
