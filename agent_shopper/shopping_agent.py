@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import sqlite3
+import time
 from typing import Optional
 print("1. imports starting")
 
@@ -26,13 +27,17 @@ load_dotenv()
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "store.db")
 
+_prefs_cache: dict[str, str] = {}
+_prefs_cache_ts: float = 0.0
+_PREFS_TTL = 30  # seconds
+
 # NOTE: creating ChatGroq clients and the agent can fail at import time if
 # the GROQ API key isn't set. Lazily initialize them when first used.
 
 
 def _create_agent():
     print("7. creating llm")
-    llm = ChatGroq(model="qwen/qwen3-32b", temperature=0.07)
+    llm = ChatGroq(model="qwen/qwen3-32b", temperature=0.1)  # change this
     vision_llm = ChatGroq(model="meta-llama/llama-4-scout-17b-16e-instruct", temperature=0)
 
     print("8. creating agent")
@@ -55,9 +60,9 @@ def _create_agent():
             "2. Use the returned search_query and is_organic to call search_products.\n"
             "3. Continue with the BROWSING flow from step 2 onwards.\n\n"
             "BROWSING — when the user describes what they want to buy:\n"
-            "1. Call search_products to find matching items (apply any price/organic filters given).\n"
-            "2. For each candidate, call get_rating to retrieve its average rating.\n"
-            "3. Filter by the user's minimum rating if specified.\n"
+            "1. Call search_products — ratings are already included in the results (average_rating field).\n"
+            "2. DO NOT call get_rating separately — it is redundant and slow.\n"
+            "3. Filter by the user's minimum rating if specified using the average_rating field.\n"
             "4. Present qualifying products as a numbered list. For each item use this exact format "
             "   (plain text, no backticks, no code blocks, no bold, no italic):\n\n"
             "   #<number>. <name> (ID:<product_id>) — $<price> ★<rating> — <organic or non-organic>\n\n"
@@ -66,13 +71,12 @@ def _create_agent():
             "5. If only one product qualifies, still show it in the list and ask: "
             "   'Would you like to order it? Just say yes or give me the number.'\n"
             "6. Do NOT call checkout at this stage.\n\n"
-            "INVENTORY CHECK — when the user asks what items or ingredients are available for a specific recipe or meal (e.g., \"overnight oatmeal\"):\n"
-            "1. Interpret the request as a query for relevant base components or ingredients.\n"
-            "2. Mentally break down the requested meal into logical keywords (e.g., for \"overnight oatmeal\", keywords would include \"oats\", \"oatmeal\", \"milk\", \"seeds\", \"honey\").\n"
-            "3. Call search_products or list_inventory using these individual core ingredient terms to find what the store actually has in stock.\n"
-            "4. Show only the matching products currently in inventory, using the same numbered list format as BROWSING.\n"
-            "5. Do not describe how to make the recipe or provide cooking instructions; only list the available products.\n\n"
-"ORDERING — when the user confirms they want to buy (e.g. 'yes', 'sure', 'go ahead', "
+            "INVENTORY CHECK — MANDATORY TOOL USE:\n"
+            "When user asks about ingredients for ANY recipe, make ONE call to search_products with a broad query (for overnight oatmeal, an empty query is fine) and use those results to identify available items.\n"
+            "Then make additional calls only for ingredients that were not found. NEVER make more than 3 search_products calls per request.\n"
+            "NEVER say items are unavailable without calling search_products first.\n"
+            "Show only products returned by the tool using BROWSING format with (ID:X).\n\n"
+            "ORDERING — when the user confirms they want to buy (e.g. 'yes', 'sure', 'go ahead', "
             "'order number 2', 'the first one', 'get me #3', or explicitly names a product like 'order almond milk'):\n"
             "1. If the user mentions a specific product name that was NOT in your last message (e.g., 'order almond milk'), "
             "   immediately pivot to the BROWSING flow first to find the product ID.\n"
@@ -151,26 +155,41 @@ def search_products(query: str, max_price: Optional[float] = None, is_organic: O
     Search the product database by keyword (matched against name, description, and category).
     Optionally filter by maximum price and/or organic status.
     Returns a JSON array of matching products, each with: id, name, category, price,
-    description, is_organic, image_url.
+    description, is_organic, image_url, average_rating, review_count.
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    sql = "SELECT id, name, category, price, description, is_organic, image_url FROM products WHERE 1=1"
+    sql = """
+        SELECT p.id,
+               p.name,
+               p.category,
+               p.price,
+               p.description,
+               p.is_organic,
+               p.image_url,
+               ROUND(COALESCE(AVG(r.rating), 0), 1) AS average_rating,
+               COUNT(r.id) AS review_count
+        FROM products p
+        LEFT JOIN reviews r ON r.product_id = p.id
+        WHERE 1=1
+    """
     params: list = []
 
     if query:
-        sql += " AND (name LIKE ? OR description LIKE ? OR category LIKE ?)"
+        sql += " AND (p.name LIKE ? OR p.description LIKE ? OR p.category LIKE ?)"
         like = f"%{query}%"
         params.extend([like, like, like])
 
     if max_price is not None:
-        sql += " AND price <= ?"
+        sql += " AND p.price <= ?"
         params.append(max_price)
 
     if is_organic is not None:
-        sql += " AND is_organic = ?"
+        sql += " AND p.is_organic = ?"
         params.append(1 if is_organic else 0)
+
+    sql += " GROUP BY p.id"
 
     cursor.execute(sql, params)
     rows = cursor.fetchall()
@@ -178,13 +197,15 @@ def search_products(query: str, max_price: Optional[float] = None, is_organic: O
 
     products = [
         {
-            "id":          row[0],
-            "name":        row[1],
-            "category":    row[2],
-            "price":       row[3],
-            "description": row[4],
-            "is_organic":  bool(row[5]),
-            "image_url":   row[6],
+            "id":             row[0],
+            "name":           row[1],
+            "category":       row[2],
+            "price":          row[3],
+            "description":    row[4],
+            "is_organic":     bool(row[5]),
+            "image_url":      row[6],
+            "average_rating": row[7],
+            "review_count":   row[8],
         }
         for row in rows
     ]
@@ -307,6 +328,11 @@ def get_preferences() -> str:
     Retrieve all saved user preferences.
     """
 
+    global _prefs_cache, _prefs_cache_ts
+
+    if time.time() - _prefs_cache_ts < _PREFS_TTL:
+        return json.dumps(_prefs_cache)
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -318,12 +344,13 @@ def get_preferences() -> str:
     rows = cursor.fetchall()
     conn.close()
 
-    prefs = {
+    _prefs_cache = {
         key: value
         for key, value in rows
     }
+    _prefs_cache_ts = time.time()
 
-    return json.dumps(prefs)
+    return json.dumps(_prefs_cache)
 
 @tool
 def describe_product_image(image_path: str) -> str:

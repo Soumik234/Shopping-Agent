@@ -97,12 +97,17 @@ def _extract_message(message: Any) -> dict[str, str]:
 def _extract_product_ids_from_message(content: str) -> list[tuple[int, int]]:
     """
     Extract product ID and index from assistant message.
-    Format: #<number>. <name> (ID:<product_id>) — ...
+    Handles variations like '#1.' or '1.' and flexible whitespace.
     Returns: list of (index, product_id) tuples in order.
     """
-    pattern = r'#(\d+)\..+?\(ID:(\d+)\)'
+    pattern = r'#?(\d+)\.\s+.+?\(ID:(\d+)\)'
     matches = re.findall(pattern, content)
-    return [(int(idx), int(pid)) for idx, pid in matches]
+    if matches:
+        return [(int(idx), int(pid)) for idx, pid in matches]
+
+    # Fallback: any bare (ID:X) references in the message.
+    fallback = re.findall(r'\(ID:(\d+)\)', content)
+    return [(i + 1, int(pid)) for i, pid in enumerate(fallback)]
 
 
 def _fetch_product_data(product_ids_with_indices: list[tuple[int, int]]) -> list[ProductResponse]:
@@ -181,6 +186,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
     assistant_message = _extract_message(messages[-1])
     content = assistant_message.get("content", "")
+    _log(request_id, f"Assistant response: {content}")
 
     # Extract product recommendations from content
     product_ids_with_indices = _extract_product_ids_from_message(content)
@@ -218,6 +224,7 @@ async def upload_image(file: UploadFile = File(...)) -> ChatResponse:
 
         assistant_message = _extract_message(messages[-1])
         content = assistant_message.get("content", "")
+        _log(request_id, f"Assistant response: {content}")
 
         # Extract product recommendations from content
         product_ids_with_indices = _extract_product_ids_from_message(content)
@@ -238,11 +245,24 @@ async def upload_image(file: UploadFile = File(...)) -> ChatResponse:
 def _log(request_id: str, message: str) -> None:
     print(f"[{request_id}] {message}")
 
+def _trim_messages(messages: list[dict]) -> list[dict]:
+    """
+    Keep only the last N exchanges to avoid context overflow.
+    Always keeps the latest user message.
+    """
+    MAX_EXCHANGES = 6  # 3 user + 3 assistant messages
+    
+    if len(messages) <= MAX_EXCHANGES:
+        return messages
+    
+    # Always keep first message (context) + last MAX_EXCHANGES messages
+    return messages[-MAX_EXCHANGES:]
 
 def _invoke_agent(request_id: str, messages: list[dict[str, str]]) -> dict:
-    _log(request_id, f"Agent request received: {messages}")
+    trimmed = _trim_messages(messages)
+    _log(request_id, f"Agent request received: {trimmed}")
     try:
-        return agent.invoke({"messages": messages})
+        return agent.invoke({"messages": trimmed})
     except Exception as e:
         _log(request_id, f"Agent exception: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
